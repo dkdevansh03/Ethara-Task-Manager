@@ -20,11 +20,23 @@ connectDB();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+const normalizeOrigin = (value) => value?.trim().replace(/\/$/, '');
+
 // CORS configuration - handle environment variable safely
-const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').trim();
+const allowedOrigins = [
+  normalizeOrigin(process.env.FRONTEND_URL || 'http://localhost:3000'),
+  'http://localhost:3000',
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: frontendUrl,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(normalizeOrigin(origin))) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   })
 );
