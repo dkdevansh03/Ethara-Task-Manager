@@ -19,9 +19,12 @@ connectDB();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// CORS configuration - handle environment variable safely
+const frontendUrl = (process.env.FRONTEND_URL || 'http://localhost:3000').trim();
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: frontendUrl,
     credentials: true,
   })
 );
