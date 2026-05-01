@@ -1,0 +1,44 @@
+.navbar {
+  background: linear-gradient(90deg, #ffffff 0%, #f8f9ff 100%);
+  padding: 15px 30px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar-brand h2 {
+  color: var(--primary);
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+.navbar-menu {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.navbar-user {
+  color: var(--text-dark);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 8px 15px;
+  background-color: var(--bg-light);
+  border-radius: 20px;
+}
+
+.navbar-menu .btn {
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
