@@ -71,6 +71,32 @@
 .project-actions {
   border-top: 1px solid var(--border);
   padding-top: 15px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.project-details {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border);
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+.project-details h4 {
+  color: var(--text-dark);
+  margin: 8px 0;
+  font-size: 14px;
+}
+
+.project-members-list {
+  margin: 0 0 10px 16px;
+  padding: 0;
+}
+
+.project-members-list li {
+  margin-bottom: 4px;
 }
 
 .empty-state {

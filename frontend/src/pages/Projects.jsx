@@ -14,6 +14,7 @@ const Projects = () => {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '', dueDate: '' });
   const [selectedMemberIds, setSelectedMemberIds] = useState([]);
+  const [expandedProjectId, setExpandedProjectId] = useState(null);
 
   useEffect(() => {
     fetchProjects();
@@ -61,6 +62,22 @@ const Projects = () => {
       fetchProjects();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to create project');
+    }
+  };
+
+  const handleDeleteProject = async (projectId) => {
+    if (!window.confirm('Are you sure you want to delete this project?')) {
+      return;
+    }
+
+    try {
+      await projectAPI.deleteProject(projectId);
+      if (expandedProjectId === projectId) {
+        setExpandedProjectId(null);
+      }
+      fetchProjects();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to delete project');
     }
   };
 
@@ -160,8 +177,46 @@ const Projects = () => {
               )}
             </div>
             <div className="project-actions">
-              <button className="btn btn-small btn-primary">View Details</button>
+              <button
+                className="btn btn-small btn-primary"
+                onClick={() =>
+                  setExpandedProjectId((prev) => (prev === project._id ? null : project._id))
+                }
+              >
+                {expandedProjectId === project._id ? 'Hide Details' : 'View Details'}
+              </button>
+              {isAdmin && (
+                <button
+                  className="btn btn-small btn-danger"
+                  onClick={() => handleDeleteProject(project._id)}
+                >
+                  Delete Project
+                </button>
+              )}
             </div>
+
+            {expandedProjectId === project._id && (
+              <div className="project-details">
+                <h4>Members</h4>
+                <ul className="project-members-list">
+                  {project.members?.map((member) => (
+                    <li key={member.user?._id || member.user}>
+                      {member.user?.name || 'Unknown'} ({member.user?.email || 'No email'})
+                      {member.role ? ` - ${member.role}` : ''}
+                    </li>
+                  ))}
+                </ul>
+
+                <h4>Owner</h4>
+                <p>
+                  {project.owner?.name || 'Unknown'} ({project.owner?.email || 'No email'})
+                </p>
+
+                {project.createdAt && (
+                  <p>Created: {new Date(project.createdAt).toLocaleString()}</p>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>

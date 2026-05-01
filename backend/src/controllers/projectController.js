@@ -1,5 +1,6 @@
 import Project from '../models/Project.js';
 import User from '../models/User.js';
+import Task from '../models/Task.js';
 import config from '../config/constants.js';
 
 // @desc    Create a new project
@@ -224,7 +225,7 @@ export const removeMember = async (req, res) => {
 
 // @desc    Delete project
 // @route   DELETE /api/projects/:id
-// @access  Private (Owner of project)
+// @access  Private (Admin of project)
 export const deleteProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
@@ -233,11 +234,14 @@ export const deleteProject = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    // Check if user is owner
-    if (project.owner.toString() !== req.userId) {
-      return res.status(403).json({ message: 'Only owner can delete project' });
+    // Any admin member of the project can delete it
+    const member = project.members.find((m) => m.user.toString() === req.userId);
+    if (!member || member.role !== config.ROLES.ADMIN) {
+      return res.status(403).json({ message: 'Only project admins can delete project' });
     }
 
+    // Cleanup project tasks to avoid orphan records
+    await Task.deleteMany({ project: project._id });
     await Project.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
