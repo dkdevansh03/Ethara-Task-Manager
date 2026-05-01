@@ -1,10 +1,37 @@
 import User from '../models/User.js';
 import jwt from 'jsonwebtoken';
+import config from '../config/constants.js';
+
+// Normalize jwt expire value (accepts '7d', '7 days', number seconds, etc.)
+const normalizeExpire = (value) => {
+  if (!value) return '7d';
+  const v = String(value).trim();
+
+  // If purely numeric, treat as seconds
+  if (/^\d+$/.test(v)) return Number(v);
+
+  // Common human forms -> short form accepted by jsonwebtoken
+  let normalized = v
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/days?/, 'd')
+    .replace(/hours?/, 'h')
+    .replace(/minutes?/, 'm')
+    .replace(/seconds?/, 's');
+
+  // If still malformed, fallback to 7d
+  if (!/^[0-9]+[dhms]?$/.test(normalized) && !/^[0-9]+$/.test(normalized)) {
+    return '7d';
+  }
+
+  return normalized;
+};
 
 // Generate JWT Token
 const generateToken = (id) => {
+  const expiresIn = normalizeExpire(config.JWT_EXPIRE);
   return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRE,
+    expiresIn,
   });
 };
 
