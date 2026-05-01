@@ -113,14 +113,11 @@ lsof -ti:3000 | xargs kill -9  # Frontend
 
 ---
 
-## 🚢 Deploy on Railway
+## 🚢 Deploy (Backend on Railway, Frontend on Vercel)
 
-1. Create Railway account: https://railway.app
-2. Connect GitHub repo
-3. Add backend service with env vars
-4. Add frontend service with env vars
-5. Update FRONTEND_URL in backend after deploy
-6. Done! ✅
+1. Create Railway account: https://railway.app and deploy the backend (see `DEPLOYMENT.md`).
+2. Deploy the frontend to Vercel (recommended) and set `VITE_API_URL` to your Railway backend `/api` URL.
+3. Update `FRONTEND_URL` in the Railway backend variables to your Vercel frontend URL.
 
 Full guide: See `DEPLOYMENT.md`
 

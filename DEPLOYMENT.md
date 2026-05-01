@@ -89,39 +89,35 @@ mongodb+srv://username:password@cluster.mongodb.net/task-manager?retryWrites=tru
 
 ---
 
-### Part 3: Railway Frontend Deployment
+### Part 3: Frontend Deployment (Vercel)
 
-1. **Add Frontend Service**
-   - In your Railway project, click "Add"
-   - Select "GitHub Repo"
-   - Confirm and deploy
-   - Select "frontend" directory as root
+Deploy the frontend to Vercel (recommended) and keep the backend on Railway.
 
-2. **Configure Environment Variables**
-   - Go to Variables
-   - Add:
+1. Import to Vercel
+   - Go to https://vercel.com and import your GitHub repository
+   - When configuring the project set the **Root Directory** to `frontend`
+
+2. Environment Variables
+   - In Vercel project settings → Environment Variables add:
    ```
    VITE_API_URL=https://your-backend-railway-url/api
    ```
-   (Use the backend URL you saved earlier with `/api` suffix)
 
-3. **Build Configuration**
-   - Ensure build command is: `npm run build`
-   - Ensure start command is: `npm start` or configure for static hosting
-   - For Railway static hosting, install: `npm i -g serve`
-   - Start command: `serve -s dist -l 5000`
+3. Build settings
+   - Build Command: `npm run build`
+   - Output Directory: `dist`
+   - Ensure `vercel.json` or `frontend/vercel.json` contains an SPA rewrite to `index.html` (this repo includes `frontend/vercel.json`)
 
-4. **Get Frontend URL**
-   - Wait for deployment
-   - Copy the Railway URL (looks like: `https://task-manager-frontend-production.up.railway.app`)
+4. Deploy
+   - Deploy the project. Copy the Vercel URL (e.g. `https://your-frontend.vercel.app`) for backend configuration.
 
 ---
 
 ### Part 4: Update Backend with Frontend URL
 
-1. Go back to Backend service settings
+1. Go back to Backend service settings on Railway
 2. Click Variables
-3. Update `FRONTEND_URL` with your frontend Railway URL
+3. Update `FRONTEND_URL` with your frontend Vercel URL (e.g. `https://your-frontend.vercel.app`)
 4. Trigger a redeploy
 
 ---

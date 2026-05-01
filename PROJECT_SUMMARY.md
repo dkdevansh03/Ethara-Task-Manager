@@ -323,10 +323,10 @@ The app works on:
 - Environment configured
 - Ready to run with `npm start`
 
-### Railway: Ready ✅
+### Deployment: Backend on Railway, Frontend on Vercel
 - See DEPLOYMENT.md for complete guide
 - Backend deployable to Railway
-- Frontend deployable to Railway
+- Frontend deployable to Vercel
 - MongoDB Atlas integration ready
 
 ---
