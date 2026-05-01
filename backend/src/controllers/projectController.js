@@ -13,6 +13,12 @@ export const createProject = async (req, res) => {
       return res.status(400).json({ message: 'Project name is required' });
     }
 
+    // Only users with global ADMIN role can create projects
+    const requestingUser = await User.findById(req.userId);
+    if (!requestingUser || requestingUser.role !== config.ROLES.ADMIN) {
+      return res.status(403).json({ message: 'Only admins can create projects' });
+    }
+
     const project = await Project.create({
       name,
       description,

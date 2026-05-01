@@ -19,9 +19,10 @@ export const createTask = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    const isMember = project.members.some((m) => m.user.toString() === req.userId);
-    if (!isMember) {
-      return res.status(403).json({ message: 'Access denied' });
+    // Only project admins can create tasks
+    const member = project.members.find((m) => m.user.toString() === req.userId);
+    if (!member || member.role !== config.ROLES.ADMIN) {
+      return res.status(403).json({ message: 'Only project admins can create tasks' });
     }
 
     const task = await Task.create({
@@ -63,19 +64,23 @@ export const getTasks = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    const isMember = project.members.some((m) => m.user.toString() === req.userId);
-    if (!isMember) {
+    const member = project.members.find((m) => m.user.toString() === req.userId);
+    if (!member) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
+    // Admins see all tasks in project; members see only tasks assigned to them
     let query = { project: projectId };
-
     if (status) query.status = status;
-    if (assignee) query.assignee = assignee;
 
-    const tasks = await Task.find(query)
-      .populate('creator assignee', 'name email')
-      .sort('-createdAt');
+    if (member.role === config.ROLES.ADMIN) {
+      if (assignee) query.assignee = assignee;
+    } else {
+      // non-admin members can only see their own assigned tasks
+      query.assignee = req.userId;
+    }
+
+    const tasks = await Task.find(query).populate('creator assignee', 'name email').sort('-createdAt');
 
     res.status(200).json({
       success: true,
@@ -99,11 +104,16 @@ export const getTaskById = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Check if user is member of project
+    // Check permissions: admin of project or assignee
     const project = await Project.findById(task.project);
-    const isMember = project.members.some((m) => m.user.toString() === req.userId);
+    const member = project.members.find((m) => m.user.toString() === req.userId);
+    const isAssignee = task.assignee && task.assignee.toString() === req.userId;
 
-    if (!isMember) {
+    if (!member && !isAssignee) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    if (member && member.role !== config.ROLES.ADMIN && !isAssignee) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
@@ -127,22 +137,33 @@ export const updateTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Check if user is member of project
+    // Check permissions based on project role and assignee
     const project = await Project.findById(task.project);
-    const isMember = project.members.some((m) => m.user.toString() === req.userId);
+    const member = project.members.find((m) => m.user.toString() === req.userId);
+    const isAssignee = task.assignee && task.assignee.toString() === req.userId;
 
-    if (!isMember) {
+    if (!member && !isAssignee) {
       return res.status(403).json({ message: 'Access denied' });
     }
 
     const { title, description, status, priority, dueDate, assigneeId } = req.body;
 
-    if (title) task.title = title;
-    if (description !== undefined) task.description = description;
-    if (status) task.status = status;
-    if (priority) task.priority = priority;
-    if (dueDate) task.dueDate = dueDate;
-    if (assigneeId !== undefined) task.assignee = assigneeId;
+    // Admins can update all fields
+    if (member && member.role === config.ROLES.ADMIN) {
+      if (title) task.title = title;
+      if (description !== undefined) task.description = description;
+      if (status) task.status = status;
+      if (priority) task.priority = priority;
+      if (dueDate) task.dueDate = dueDate;
+      if (assigneeId !== undefined) task.assignee = assigneeId;
+    } else if (isAssignee) {
+      // Non-admin assignee can only mark task as completed
+      if (status && status === config.TASK_STATUS.COMPLETED) {
+        task.status = config.TASK_STATUS.COMPLETED;
+      } else {
+        return res.status(403).json({ message: 'Only admins can modify this task. Assignees may only mark it completed.' });
+      }
+    }
 
     await task.save();
     await task.populate('creator assignee', 'name email');
@@ -203,14 +224,11 @@ export const deleteTask = async (req, res) => {
       return res.status(404).json({ message: 'Task not found' });
     }
 
-    // Check if user is creator or admin of project
-    if (task.creator.toString() !== req.userId) {
-      const project = await Project.findById(task.project);
-      const member = project.members.find((m) => m.user.toString() === req.userId);
-
-      if (!member || member.role !== config.ROLES.ADMIN) {
-        return res.status(403).json({ message: 'Access denied' });
-      }
+    // Only project admins can delete tasks
+    const project = await Project.findById(task.project);
+    const member = project.members.find((m) => m.user.toString() === req.userId);
+    if (!member || member.role !== config.ROLES.ADMIN) {
+      return res.status(403).json({ message: 'Only project admins can delete tasks' });
     }
 
     await Task.findByIdAndDelete(req.params.id);
