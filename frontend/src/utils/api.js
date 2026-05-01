@@ -35,6 +35,11 @@ export const authAPI = {
   getProfile: () => api.get('/auth/profile'),
 };
 
+// User endpoints
+export const userAPI = {
+  getUsers: () => api.get('/users'),
+};
+
 // Project endpoints
 export const projectAPI = {
   createProject: (data) => api.post('/projects', data),

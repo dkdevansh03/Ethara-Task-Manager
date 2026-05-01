@@ -1,17 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { projectAPI, taskAPI } from '../utils/api';
+import { projectAPI, userAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 import './Projects.css';
 
 const Projects = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
   const [projects, setProjects] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', description: '', dueDate: '' });
+  const [selectedMemberIds, setSelectedMemberIds] = useState([]);
 
   useEffect(() => {
     fetchProjects();
   }, []);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchUsers();
+    }
+  }, [isAdmin]);
 
   const fetchProjects = async () => {
     try {
@@ -24,11 +36,27 @@ const Projects = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      setLoadingUsers(true);
+      const response = await userAPI.getUsers();
+      setUsers(response.data.users || []);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to load users');
+    } finally {
+      setLoadingUsers(false);
+    }
+  };
+
   const handleCreateProject = async (e) => {
     e.preventDefault();
     try {
-      await projectAPI.createProject(formData);
+      await projectAPI.createProject({
+        ...formData,
+        memberIds: selectedMemberIds,
+      });
       setFormData({ name: '', description: '', dueDate: '' });
+      setSelectedMemberIds([]);
       setShowForm(false);
       fetchProjects();
     } catch (err) {
@@ -42,14 +70,16 @@ const Projects = () => {
     <div className="projects-container">
       <div className="projects-header">
         <h1>Projects</h1>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? '✕ Cancel' : '+ New Project'}
-        </button>
+        {isAdmin && (
+          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+            {showForm ? '✕ Cancel' : '+ New Project'}
+          </button>
+        )}
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
 
-      {showForm && (
+      {isAdmin && showForm && (
         <form className="project-form" onSubmit={handleCreateProject}>
           <div className="form-group">
             <label className="form-label">Project Name</label>
@@ -78,6 +108,37 @@ const Projects = () => {
               onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
             />
           </div>
+
+          <div className="form-group">
+            <label className="form-label">Assign Members</label>
+            {loadingUsers ? (
+              <p>Loading users...</p>
+            ) : (
+              <div className="member-picker">
+                {users
+                  .filter((member) => member._id !== user?.id)
+                  .map((member) => (
+                    <label key={member._id} className="member-picker-item">
+                      <input
+                        type="checkbox"
+                        checked={selectedMemberIds.includes(member._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedMemberIds((prev) => [...prev, member._id]);
+                          } else {
+                            setSelectedMemberIds((prev) => prev.filter((id) => id !== member._id));
+                          }
+                        }}
+                      />
+                      <span>
+                        {member.name} ({member.email})
+                      </span>
+                    </label>
+                  ))}
+              </div>
+            )}
+          </div>
+
           <button type="submit" className="btn btn-primary">
             Create Project
           </button>

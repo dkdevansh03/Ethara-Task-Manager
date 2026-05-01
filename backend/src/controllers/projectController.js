@@ -7,7 +7,7 @@ import config from '../config/constants.js';
 // @access  Private
 export const createProject = async (req, res) => {
   try {
-    const { name, description, dueDate } = req.body;
+    const { name, description, dueDate, memberIds = [] } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: 'Project name is required' });
@@ -19,11 +19,24 @@ export const createProject = async (req, res) => {
       return res.status(403).json({ message: 'Only admins can create projects' });
     }
 
+    const selectedMemberIds = [...new Set(Array.isArray(memberIds) ? memberIds : [])]
+      .map((id) => String(id).trim())
+      .filter((id) => id && id !== req.userId);
+
+    const validMembers = selectedMemberIds.length
+      ? await User.find({ _id: { $in: selectedMemberIds } }).select('_id')
+      : [];
+
+    if (validMembers.length !== selectedMemberIds.length) {
+      return res.status(400).json({ message: 'One or more selected members are invalid' });
+    }
+
     const project = await Project.create({
       name,
       description,
       dueDate,
       owner: req.userId,
+      members: selectedMemberIds.map((id) => ({ user: id, role: config.ROLES.MEMBER })),
     });
 
     await project.populate('owner members.user', 'name email role');

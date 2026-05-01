@@ -1,5 +1,6 @@
 import Task from '../models/Task.js';
 import Project from '../models/Project.js';
+import User from '../models/User.js';
 import config from '../config/constants.js';
 
 // @desc    Create a task
@@ -13,6 +14,10 @@ export const createTask = async (req, res) => {
       return res.status(400).json({ message: 'Title and project ID are required' });
     }
 
+    if (!assigneeId) {
+      return res.status(400).json({ message: 'Assignee is required' });
+    }
+
     // Check if project exists and user is member
     const project = await Project.findById(projectId);
     if (!project) {
@@ -23,6 +28,13 @@ export const createTask = async (req, res) => {
     const member = project.members.find((m) => m.user.toString() === req.userId);
     if (!member || member.role !== config.ROLES.ADMIN) {
       return res.status(403).json({ message: 'Only project admins can create tasks' });
+    }
+
+    if (assigneeId) {
+      const isProjectMember = project.members.some((m) => m.user.toString() === assigneeId);
+      if (!isProjectMember) {
+        return res.status(400).json({ message: 'Assignee must be a member of the project' });
+      }
     }
 
     const task = await Task.create({
@@ -155,7 +167,15 @@ export const updateTask = async (req, res) => {
       if (status) task.status = status;
       if (priority) task.priority = priority;
       if (dueDate) task.dueDate = dueDate;
-      if (assigneeId !== undefined) task.assignee = assigneeId;
+      if (assigneeId !== undefined) {
+        if (assigneeId) {
+          const isProjectMember = project.members.some((m) => m.user.toString() === assigneeId);
+          if (!isProjectMember) {
+            return res.status(400).json({ message: 'Assignee must be a member of the project' });
+          }
+        }
+        task.assignee = assigneeId || null;
+      }
     } else if (isAssignee) {
       // Non-admin assignee can only mark task as completed
       if (status && status === config.TASK_STATUS.COMPLETED) {

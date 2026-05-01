@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { projectAPI, taskAPI } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 import './Tasks.css';
 
 const Tasks = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'Admin';
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState('');
   const [tasks, setTasks] = useState([]);
@@ -15,6 +18,7 @@ const Tasks = () => {
     description: '',
     priority: 'Medium',
     dueDate: '',
+    assigneeId: '',
   });
 
   useEffect(() => {
@@ -58,7 +62,7 @@ const Tasks = () => {
         ...formData,
         projectId: selectedProject,
       });
-      setFormData({ title: '', description: '', priority: 'Medium', dueDate: '' });
+      setFormData({ title: '', description: '', priority: 'Medium', dueDate: '', assigneeId: '' });
       setShowForm(false);
       fetchTasks();
     } catch (err) {
@@ -72,6 +76,15 @@ const Tasks = () => {
       fetchTasks();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to update task');
+    }
+  };
+
+  const handleCompleteTask = async (taskId) => {
+    try {
+      await taskAPI.updateTask(taskId, { status: 'Completed' });
+      fetchTasks();
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to complete task');
     }
   };
 
@@ -92,9 +105,11 @@ const Tasks = () => {
     <div className="tasks-container">
       <div className="tasks-header">
         <h1>Tasks</h1>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
-          {showForm ? '✕ Cancel' : '+ New Task'}
-        </button>
+        {isAdmin && (
+          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+            {showForm ? '✕ Cancel' : '+ New Task'}
+          </button>
+        )}
       </div>
 
       {error && <div className="alert alert-error">{error}</div>}
@@ -120,7 +135,7 @@ const Tasks = () => {
         </select>
       </div>
 
-      {showForm && (
+      {isAdmin && showForm && (
         <form className="task-form" onSubmit={handleCreateTask}>
           <div className="form-group">
             <label className="form-label">Task Title</label>
@@ -163,6 +178,26 @@ const Tasks = () => {
               />
             </div>
           </div>
+
+          <div className="form-group">
+            <label className="form-label">Assign To</label>
+            <select
+              className="form-select"
+              value={formData.assigneeId}
+              required
+              onChange={(e) => setFormData({ ...formData, assigneeId: e.target.value })}
+            >
+              <option value="">Select member</option>
+              {(projects.find((project) => project._id === selectedProject)?.members || [])
+                .filter((member) => member.user && member.user._id !== user?.id)
+                .map((member) => (
+                  <option key={member.user._id} value={member.user._id}>
+                    {member.user.name} ({member.user.email})
+                  </option>
+                ))}
+            </select>
+          </div>
+
           <button type="submit" className="btn btn-primary">
             Create Task
           </button>
@@ -182,21 +217,34 @@ const Tasks = () => {
               </div>
             </div>
             <div className="task-actions">
-              <select
-                className="form-select"
-                value={task.status}
-                onChange={(e) => handleUpdateTask(task._id, e.target.value)}
-              >
-                <option>To Do</option>
-                <option>In Progress</option>
-                <option>Completed</option>
-              </select>
-              <button
-                className="btn btn-danger btn-small"
-                onClick={() => handleDeleteTask(task._id)}
-              >
-                Delete
-              </button>
+              {isAdmin ? (
+                <>
+                  <select
+                    className="form-select"
+                    value={task.status}
+                    onChange={(e) => handleUpdateTask(task._id, e.target.value)}
+                  >
+                    <option>To Do</option>
+                    <option>In Progress</option>
+                    <option>Completed</option>
+                  </select>
+                  <button
+                    className="btn btn-danger btn-small"
+                    onClick={() => handleDeleteTask(task._id)}
+                  >
+                    Delete
+                  </button>
+                </>
+              ) : (
+                task.status !== 'Completed' && (
+                  <button
+                    className="btn btn-primary btn-small"
+                    onClick={() => handleCompleteTask(task._id)}
+                  >
+                    Mark Completed
+                  </button>
+                )
+              )}
             </div>
           </div>
         ))}
